@@ -7,7 +7,7 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 
 
 @configclass
-class AnymalDRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class PPOBaseCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 1500
     save_interval = 50
@@ -35,12 +35,19 @@ class AnymalDRoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     )
 
 
+######################################################################
+# PPO - Specific Configuration
+######################################################################
 @configclass
-class AnymalDFlatPPORunnerCfg(AnymalDRoughPPORunnerCfg):
-    def __post_init__(self):
-        super().__post_init__()
+class PPOCfg(PPOBaseCfg):
+    logger = "wandb"
+    run_name = "PPO"
 
-        self.max_iterations = 300
-        self.experiment_name = "anymal_d_flat"
-        self.policy.actor_hidden_dims = [128, 128, 128]
-        self.policy.critic_hidden_dims = [128, 128, 128]
+
+######################################################################
+# PPO - Dev Configuration
+######################################################################
+@configclass
+class PPOCfgDEV(PPOCfg):
+    logger = "tensorboard"
+    run_name = "Debug"
