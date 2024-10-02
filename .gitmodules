@@ -1,0 +1,3 @@
+[submodule "isaac-nav-suite"]
+	path = isaac-nav-suite
+	url = git@github.com:leggedrobotics/isaac-nav-suite.git
