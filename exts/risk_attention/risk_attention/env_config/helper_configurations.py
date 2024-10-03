@@ -28,12 +28,12 @@ def add_play_configuration(self):
 
     # TODO: Add commands just for play mode
 
-    # curriculum (disable all)
+    # Curriculum (disable all)
     for key in list(self.curriculum.__dict__.keys()):
         if not key.startswith("__"):
             delattr(self.curriculum, key)
 
-    self.events.reset_base.params["additive_heading_range"]["yaw"] = (0, 0)
+    self.events.reset_base.params["yaw_range"] = (0, 0)
 
     # terminate straight away
     self.terminations.goal_reached.params = {

@@ -1,9 +1,5 @@
-"""
-Python module serving as a project/extension template.
-"""
+# This registers the Gym environments via the __init__.py file in the agent_config directory.
+from .agent_config import *  # noqa: F401, F403
 
-# Register Gym environments.
-from .tasks import *
-
-# Register UI extensions.
-from .ui_extension_example import *
+# Environment configurations
+from .env_config import *  # noqa: F401, F403

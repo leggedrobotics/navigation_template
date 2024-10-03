@@ -27,7 +27,16 @@
             "name": "Python: Train Environment",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Isaac-Velocity-Flat-Anymal-D-v0", "--num_envs", "4096", "--headless"],
+            "args" : ["--task", "Isaac-Navigation-RiskAttention-PPO-Anymal-D-TRAIN", "--num_envs", "4096", "--headless"],
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.vscode/.python.env",
+        },
+        {
+            "name": "Python: Dev Environment",
+            "type": "debugpy",
+            "request": "launch",
+            "args" : ["--task", "Isaac-Navigation-RiskAttention-PPO-Anymal-D-DEV", "--num_envs", "5"],
             "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.vscode/.python.env",
@@ -36,11 +45,12 @@
             "name": "Python: Play Environment",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Isaac-Velocity-Flat-Anymal-D-Play-v0", "--num_envs", "32"],
+            "args" : ["--task", "Isaac-Navigation-RiskAttention-PPO-Anymal-D-PLAY", "--num_envs", "32"],
             "program": "${workspaceFolder}/scripts/rsl_rl/play.py",
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.vscode/.python.env",
         },
+
 
         // For script execution inside a Docker
         {

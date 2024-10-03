@@ -17,7 +17,7 @@ from omni.isaac.lab_assets.anymal import ANYMAL_D_CFG
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
-from omni.isaac.lab.envs import ManagerBasedEnvCfg, ViewerCfg
+from omni.isaac.lab.envs import ManagerBasedRLEnvCfg, ViewerCfg
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
@@ -26,13 +26,16 @@ from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
-from omni.isaac.lab.sensors import ContactSensorCfg, RayCasterCameraCfg, RayCasterCfg, patterns
+from omni.isaac.lab.sensors import ContactSensorCfg, RayCasterCameraCfg, RayCasterCfg
 from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
+from nav_collectors.terrain_analysis import TerrainAnalysisCfg
+from nav_collectors.collectors import TrajectorySamplingCfg
+from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
 
 import risk_attention.mdp as mdp
-from risk_attention.sensors import stereolabs
-from . import helper_configurations
+
+from .helper_configurations import add_play_configuration
 
 # Reset cuda memory
 torch.cuda.empty_cache()
@@ -52,35 +55,20 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
-TERRAIN_MESH_PATH = ["/World/ground"]
+TERRAIN_MESH_PATH : list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
+    
+IMAGE_SIZE_DOWNSAMPLE_FACTOR = 10
+
+# This works if both this extension and the nav_tasks extension are linked in the extensions directory of 
+# IsaacLab together.
+NAV_TASKS_DATA_DIR = os.path.join(ISAACLAB_ASSETS_EXT_DIR, "../nav_tasks/data")
 
 ##
 # Scene definition
 ##
 @configclass
 class RiskAttentionSceneCfg(InteractiveSceneCfg):
-    """Configuration for the terrain scene with a legged robot."""
-
-    # NAVIGATION TERRAIN - Must be a saved USD file
-    # terrain = TerrainImporterCfg(
-    #     prim_path="/World/ground",
-    #     terrain_type="usd",
-    #     usd_path=os.path.join(ISAACLAB_ASSETS_EXT_DIR, "Terrains", "navigation_terrain.usd"),
-    #     max_init_terrain_level=None,
-    #     collision_group=-1,
-    #     physics_material=sim_utils.RigidBodyMaterialCfg(
-    #         friction_combine_mode="multiply",
-    #         restitution_combine_mode="multiply",
-    #         static_friction=1.0,
-    #         dynamic_friction=1.0,
-    #     ),
-    #     visual_material=sim_utils.MdlFileCfg(
-    #         mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-    #         project_uvw=True,
-    #     ),
-    #     debug_vis=True,
-    #     usd_uniform_env_spacing=10.0,  # 10m spacing between environment origins in the usd environment
-    # )
+    """Configuration for a scene for training a perceptive navigation policy on an AnymalD Robot."""
         
     # DEMO TERRAIN - Just a plane
     terrain = TerrainImporterCfg(
@@ -96,11 +84,12 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    # robots
+    # ROBOTS
     robot: ArticulationCfg = ANYMAL_D_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # sensors
-    # TODO: Decide on how to downsample the camera data.
+    # SENSORS
+        
+    # Stereolabs Cameras for Navigation Policy
     forwards_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
@@ -113,7 +102,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
             convention="world",  # 15 degrees
         ),
     )
-    rear_zed_camera = RayCasterCameraCfg(
+    rear_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
@@ -123,7 +112,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
             convention="world", # 10 degrees
         ),  
     )
-    right_zed_camera = RayCasterCameraCfg(
+    right_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
@@ -133,7 +122,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
             convention="world",  # 20 degrees
         ),
     )
-    left_zed_camera = RayCasterCameraCfg(
+    left_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
@@ -144,11 +133,12 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    # Foot Scanners for Locomotion Policy
     foot_scanner_lf = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/LF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.FootScanPatternCfg(),
+        pattern_cfg=FootScanPatternCfg(),
         debug_vis=False,
         track_mesh_transforms=False,
         mesh_prim_paths=TERRAIN_MESH_PATH,
@@ -159,7 +149,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.FootScanPatternCfg(),
+        pattern_cfg=FootScanPatternCfg(),
         debug_vis=False,
         track_mesh_transforms=False,
         mesh_prim_paths=TERRAIN_MESH_PATH,
@@ -170,7 +160,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/LH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.FootScanPatternCfg(),
+        pattern_cfg=FootScanPatternCfg(),
         debug_vis=False,
         track_mesh_transforms=False,
         mesh_prim_paths=TERRAIN_MESH_PATH,
@@ -181,7 +171,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.FootScanPatternCfg(),
+        pattern_cfg=FootScanPatternCfg(),
         debug_vis=False,
         track_mesh_transforms=False,
         mesh_prim_paths=TERRAIN_MESH_PATH,
@@ -190,7 +180,7 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-    # lights
+    # LIGHTS
     light = AssetBaseCfg(
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(intensity=1000.0, color=(1.0, 1.0, 1.0)),
@@ -208,8 +198,19 @@ class RiskAttentionSceneCfg(InteractiveSceneCfg):
             ".*F_KFE": -0.761428,
             ".*H_KFE": 0.761428,
         }
-        # TODO: Is this necessary?
-        self.robot.spawn.scale = [1.15, 1.15, 1.15]
+        # Downsample the camera data to a usable size for the project.
+        self.forwards_zed_camera = adjust_ray_caster_camera_image_size(
+            self.forwards_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
+        )
+        self.rear_zed_camera = adjust_ray_caster_camera_image_size(
+            self.rear_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
+        )
+        self.right_zed_camera = adjust_ray_caster_camera_image_size(
+            self.right_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
+        )
+        self.left_zed_camera = adjust_ray_caster_camera_image_size(
+            self.left_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
+        )
 
 
 ##
@@ -228,8 +229,9 @@ class ActionsCfg:
         ),
         low_level_decimation=4,
         low_level_policy_file=os.path.join(
-            ISAACLAB_ASSETS_EXT_DIR, "Robots/RSL-ETHZ/ANYmal-D", "perceptive_locomotion_jit.pt"
+            NAV_TASKS_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"
         ),
+        #/semproj/IsaacLab-Internal/source/extensions/omni.isaac.lab_assets/Robots/RSL-ETHZ/ANYmal-D/perceptive_locomotion_jit.pt
         reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
     )
 
@@ -313,7 +315,7 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
-    # observation groups
+    # Observation Groups
     low_level_policy: LocomotionPolicyCfg = LocomotionPolicyCfg()
     policy: NavigationPolicyCfg = NavigationPolicyCfg()
 
@@ -324,12 +326,14 @@ class EventCfg:
 
     reset_base = EventTerm(
         func=mdp.TerrainAnalysisRootReset(
-            cfg=mdp.TerrainAnalysisCfg(
+            cfg=TerrainAnalysisCfg(
                 semantic_cost_mapping=None,
                 raycaster_sensor="forwards_zed_camera",
-                viz_graph=True,
                 sample_points=10000,
                 height_diff_threshold=0.2,
+                max_terrain_size=100.0,
+                viz_height_map=False,
+                viz_graph=False,
             )
         ),
         mode="reset",
@@ -369,11 +373,11 @@ class RewardsCfg:
 
     # TODO: Go through these, add to isaac-nav-suite, and document / clean up.
 
-    # -- tasks
-    # sparse only on termination of task
+    # -- rewards
+    # Sparse: only when the "stayed_at_goal" condition is met, per the goal_reached term in TerminationsCfg
     goal_reached_rew = RewTerm(
-        func=mdp.is_terminated_term,  # returns 1 if the goal is reached and env has NOT timed out
-        params={"term_keys": "goal_reached"},
+        func=mdp.is_terminated_term,  # returns 1 if the goal is reached and env has NOT timed out # type: ignore
+        params={"term_keys": "goal_reached"}, 
         weight=1000.0,  # make it big
     )
 
@@ -400,18 +404,13 @@ class RewardsCfg:
         weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
     episode_termination = RewTerm(
-        func=mdp.is_terminated_term,
+        func=mdp.is_terminated_term, # type: ignore
         params={"term_keys": ["base_contact", "leg_contact"]},
         weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
     )
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2,
         weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    no_robot_movement = RewTerm(
-        func=mdp.no_robot_movement,
-        weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"goal_distance_thresh": 0.5},
     )
 
 
@@ -422,13 +421,9 @@ class TerminationsCfg:
     NOTE: time_out flag: if set to True, there won't be any termination penalty added for 
           the termination, but in the RSL_RL library time_out flag has implications for how 
           the reward is handled before the optimization step. If time_out is True, the rewards
-          are bootstrapped !!!
-    NOTE: When robot arrives at goal, it should stay there until timeout is reached, thus no 
-          termimation config for training.
+          are bootstrapped!
     NOTE: Wandb Episode Termination --> independent of num robots, episode length, etc.
     """
-
-    # TODO: Go through these and document / clean up.
 
     time_out = DoneTerm(
         func=mdp.proportional_time_out,
@@ -440,7 +435,7 @@ class TerminationsCfg:
     )
 
     goal_reached = DoneTerm(
-        func=mdp.stayed_at_goal,
+        func=mdp.StayedAtGoal, # type: ignore
         params={
             "time_threshold": 2.0,
             "distance_threshold": 0.5,
@@ -474,27 +469,11 @@ class CurriculumCfg:
     """Curriculum terms for the MDP.
     NOTE: steps = learning_iterations * num_steps_per_env)
     """
-        
-    terrain_levels = CurrTerm(
-        func=mdp.modify_terrain_level,
-        params={
-            "initial_config": {
-                "promote_ratio": 0.01,
-                "demote_ratio": 0.01,
-            },
-            "final_config": {
-                "promote_ratio": 0.2,
-                "demote_ratio": 0.2,
-            },
-            "start_step": 500 * 48,
-            "end_step": 1500 * 48,
-        },
-    )
 
     initial_heading_pertubation = CurrTerm(
         func=mdp.modify_heading_randomization_linearly,
         params={
-            "term_name": "reset_base",
+            "event_term_name": "reset_base",
             "initial_perturbation": 0.0,
             "final_perturbation": 3.0,
             "start_step": 0,
@@ -505,7 +484,7 @@ class CurriculumCfg:
     goal_conditions_ramp = CurrTerm(
         func=mdp.modify_goal_conditions,
         params={
-            "term_name": "goal_reached",
+            "termination_term_name": "goal_reached",
             "time_range": (2.0, 2.0),
             "distance_range": (1, 0.5),
             "angle_range": (0.6, 0.3),
@@ -538,25 +517,34 @@ class CurriculumCfg:
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-
-    # TODO: Configure Goal Command With Terrain Analysis
-    command: mdp.NullCommandCfg = mdp.NullCommandCfg()
     
-    # goal_command = mdp.GoalCommandCfg(
-    #     asset_name="robot",
-    #     z_offset_spawn=0.2,
-    #     etc...
-    # )
-
+    goal_command = mdp.GoalCommandCfg(
+        asset_name="robot",
+        z_offset_spawn=0.2,
+        trajectory_config = {
+        "num_paths": [100],
+        "max_path_length": [10.0],
+        "min_path_length": [2.0],
+        },
+        traj_sampling=TrajectorySamplingCfg(
+            terrain_analysis=TerrainAnalysisCfg(
+                raycaster_sensor="forwards_zed_camera", 
+                max_terrain_size=100.0, 
+                semantic_cost_mapping=None,
+                viz_graph=False,
+                viz_height_map=False,
+            )
+        ),
+        resampling_time_range=(1.0e9,1.0e9), # No resampling
+    )
 
 @configclass
-class MyViewerCfg(ViewerCfg):
+class DefaultViewerCfg(ViewerCfg):
     """Configuration of the scene viewport camera."""
 
     eye: tuple[float, float, float] = (0.0, 70.0, 70.0)
     lookat: tuple[float, float, float] = (0.0, 10.0, 0.0)
-    # resolution: tuple[int, int] = (1920, 1080)   # FHD
-    resolution: tuple[int, int] = (1280, 720)  # HD
+    resolution: tuple[int, int] = (1280, 720)  # (1280, 720) HD, (1920, 1080) FHD
     origin_type: str = "world"  # "world", "env", "asset_root"
     env_index: int = 1
     asset_name: str = "robot"
@@ -568,7 +556,7 @@ class MyViewerCfg(ViewerCfg):
 
 
 @configclass
-class RiskAttentionEnvCfg(ManagerBasedEnvCfg):
+class RiskAttentionEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the navigation environment."""
 
     # Scene settings
@@ -585,32 +573,39 @@ class RiskAttentionEnvCfg(ManagerBasedEnvCfg):
     events: EventCfg = EventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
 
-    viewer: MyViewerCfg = MyViewerCfg()
+    viewer: DefaultViewerCfg = DefaultViewerCfg()
 
     def __post_init__(self):
         """Post initialization."""
-        # general settings
-        self.fz_low_level_planner = 10  # Hz
-        self.episode_length_s = 20
-        self.use_path_follower_controller = False  # default is learned policy
 
-        # DO NOT CHANGE
-        self.decimation = int(200 / self.fz_low_level_planner)  # low/high level planning runs at 25Hz <- This is
-        # setting how many times the high level actions (navigation policy) are applied to the sim before being
-        # recalculated. This means the MDP stuff is recalculated every 0.005 * 20 = 0.1 seconds -> 10Hz.
+        ###### DO NOT CHANGE ######
 
-        self.low_level_decimation = 4  # low level controller runs at 50Hz <- similar to above, the low_level actions
-        # are calculated every sim.dt * low_level_decimation, so 0.005 * 4 = 0.02 seconds, or 50hz.
-
-        # simulation settings
+        # Simulation settings
         self.sim.dt = 0.005  # In seconds
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
 
+        # General settings
+        self.episode_length_s = 20
+        self.use_path_follower_controller = False  # default is learned policy
+
+        # This sets how many times the high-level actions (navigation policy) 
+        # are applied to the sim before being recalculated. 
+        # self.sim.dt * self.decimation = 0.005 * 20 = 0.1 seconds -> 10Hz.
+        self.fz_low_level_planner = 10  # Hz
+        self.decimation = int(200 / self.fz_low_level_planner)  
+
+        # Similar to above, the low-level actions (locomotion controller) are calculated every:
+        # self.sim.dt * self.low_level_decimation, so 0.005 * 4 = 0.02 seconds, or 50Hz.
+        self.low_level_decimation = 4  
+
+        ###### /DO NOT CHANGE ######
+
         # update sensor update periods
-        # we tick all the sensors based on the smallest update period (physics update period)
+        # We tick contact sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
+        # We tick the cameras based on the navigation policy update period.
         if self.scene.forwards_zed_camera is not None:
             self.scene.forwards_zed_camera.update_period = self.decimation * self.sim.dt
         if self.scene.rear_zed_camera is not None:
@@ -620,18 +615,13 @@ class RiskAttentionEnvCfg(ManagerBasedEnvCfg):
         if self.scene.left_zed_camera is not None:
             self.scene.left_zed_camera.update_period = self.decimation * self.sim.dt
 
-        # store the image dimensions so the policy pre processing CNN can be initialised correctly
-        # list of tuples (height, width), the policy will split observations based on this
-        self.depth_image_size = DEPTH_IMAGE_SIZE
-
 
 ######################################################################
-# Anymal D - TRAIN & PLAY & DEV Configuration
+# Anymal D - TRAIN & PLAY & DEV Configuration Modifications
 ######################################################################
 @configclass
 class RiskAttentionEnvCfg_TRAIN(RiskAttentionEnvCfg):
     def __post_init__(self):
-        # post init of parent
         super().__post_init__()
 
         # Change number of environments
@@ -641,17 +631,15 @@ class RiskAttentionEnvCfg_TRAIN(RiskAttentionEnvCfg):
 @configclass
 class RiskAttentionEnvCfg_PLAY(RiskAttentionEnvCfg):
     def __post_init__(self):
-        # post init of parent
         super().__post_init__()
 
         # default play configuration
-        helper_configurations.add_play_configuration(self)
+        add_play_configuration(self)
 
 
 @configclass
 class RiskAttentionEnvCfg_DEV(RiskAttentionEnvCfg):
     def __post_init__(self):
-        # post init of parent
         super().__post_init__()
 
         self.scene.num_envs = 2
