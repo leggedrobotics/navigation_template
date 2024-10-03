@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 
-from risk_attention.env_config import env_cfg_base
+from navigation_template.env_config import env_cfg_base
 from . import agents
 
 ##

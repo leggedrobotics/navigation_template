@@ -33,7 +33,7 @@ from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
 from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
 
-import risk_attention.mdp as mdp
+import navigation_template.mdp as mdp
 
 from .helper_configurations import add_play_configuration
 

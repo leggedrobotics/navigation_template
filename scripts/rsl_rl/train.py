@@ -44,7 +44,7 @@ from datetime import datetime
 from rsl_rl.runners import OnPolicyRunner
 
 # Import extensions to set up environment tasks
-import risk_attention  # noqa: F401
+import navigation_template  # noqa: F401
 
 from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
 from omni.isaac.lab.utils.dict import print_dict

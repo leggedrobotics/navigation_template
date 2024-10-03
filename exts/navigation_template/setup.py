@@ -1,4 +1,4 @@
-"""Installation script for the 'risk_attention' python package."""
+"""Installation script for the 'navigation_template' python package."""
 
 import os
 import toml
@@ -18,8 +18,8 @@ INSTALL_REQUIRES = [
 
 # Installation operation
 setup(
-    name="risk_attention",
-    packages=["risk_attention"],
+    name="navigation_template",
+    packages=["navigation_template"],
     author=EXTENSION_TOML_DATA["package"]["author"],
     maintainer=EXTENSION_TOML_DATA["package"]["maintainer"],
     url=EXTENSION_TOML_DATA["package"]["repository"],
