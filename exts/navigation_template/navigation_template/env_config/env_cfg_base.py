@@ -67,7 +67,7 @@ NAV_TASKS_DATA_DIR = os.path.join(ISAACLAB_ASSETS_EXT_DIR, "../nav_tasks/data")
 # Scene definition
 ##
 @configclass
-class RiskAttentionSceneCfg(InteractiveSceneCfg):
+class NavigationTemplateSceneCfg(InteractiveSceneCfg):
     """Configuration for a scene for training a perceptive navigation policy on an AnymalD Robot."""
         
     # DEMO TERRAIN - Just a plane
@@ -556,11 +556,11 @@ class DefaultViewerCfg(ViewerCfg):
 
 
 @configclass
-class RiskAttentionEnvCfg(ManagerBasedRLEnvCfg):
+class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the navigation environment."""
 
     # Scene settings
-    scene: RiskAttentionSceneCfg = RiskAttentionSceneCfg(num_envs=100, env_spacing=8)
+    scene: NavigationTemplateSceneCfg = NavigationTemplateSceneCfg(num_envs=100, env_spacing=8)
 
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
@@ -620,7 +620,7 @@ class RiskAttentionEnvCfg(ManagerBasedRLEnvCfg):
 # Anymal D - TRAIN & PLAY & DEV Configuration Modifications
 ######################################################################
 @configclass
-class RiskAttentionEnvCfg_TRAIN(RiskAttentionEnvCfg):
+class NavigationTemplateEnvCfg_TRAIN(NavigationTemplateEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
@@ -629,7 +629,7 @@ class RiskAttentionEnvCfg_TRAIN(RiskAttentionEnvCfg):
 
 
 @configclass
-class RiskAttentionEnvCfg_PLAY(RiskAttentionEnvCfg):
+class NavigationTemplateEnvCfg_PLAY(NavigationTemplateEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
@@ -638,7 +638,7 @@ class RiskAttentionEnvCfg_PLAY(RiskAttentionEnvCfg):
 
 
 @configclass
-class RiskAttentionEnvCfg_DEV(RiskAttentionEnvCfg):
+class NavigationTemplateEnvCfg_DEV(NavigationTemplateEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
