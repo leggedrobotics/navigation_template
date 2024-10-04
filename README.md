@@ -19,7 +19,10 @@ Setup Tips:
 - Once you fork this repo, you should add it as a git submodule to IsaacLab-Internal
 - Remember to run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
 - Also remember to symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
+  
 ![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
+![image](https://github.com/user-attachments/assets/19b5f571-9741-4937-bc79-a41ba36ec40c)
+
 
 
 The rest of this README is the same as the general [extension template](https://github.com/isaac-sim/IsaacLabExtensionTemplate) README.
