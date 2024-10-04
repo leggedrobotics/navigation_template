@@ -1,4 +1,4 @@
-# Template for Isaac Lab Projects
+# Template for _Navigation_ Isaac Lab Projects
 
 [![IsaacSim](https://img.shields.io/badge/IsaacSim-4.0.0-silver.svg)](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html)
 [![Isaac Lab](https://img.shields.io/badge/IsaacLab-1.0.0-silver)](https://isaac-sim.github.io/IsaacLab)
@@ -10,7 +10,11 @@
 
 ## Overview
 
-This repository serves as a template for building projects or extensions based on Isaac Lab. It allows you to develop in an isolated environment, outside of the core Isaac Lab repository.
+This repository fork serves as a template for building projects or extensions based on Isaac Lab, specifically for navigation projects. It allows you to develop in an isolated environment, outside of the core Isaac Lab repository.
+
+The code skeleton here is very lightweight, because all shared navigation components live in [isaac-nav-suite](https://github.com/leggedrobotics/isaac-nav-suite), and this template just assembles them in an example env_cfg file in a way that works out the box, and demonstrates how to set up your directory structure. **NOTE:** at present, the necessary navigation components are not yet checked into the main branch of isaac-nav-suite, so to get a working project out the box, you should check out the [dev/kappi_tas/migration](https://github.com/leggedrobotics/isaac-nav-suite/tree/dev/kappi_tas/migration?tab=readme-ov-file) branch.
+
+The rest of this README is the same as the general [extension template](https://github.com/isaac-sim/IsaacLabExtensionTemplate) README.
 
 **Key Features:**
 
