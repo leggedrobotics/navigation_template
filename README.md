@@ -14,7 +14,13 @@ This repository fork serves as a template for building projects or extensions ba
 
 The code skeleton here is very lightweight, because all shared navigation components live in [isaac-nav-suite](https://github.com/leggedrobotics/isaac-nav-suite), and this template just assembles them in an example `env_cfg` file in a way that works out the box, and demonstrates how to set up your directory structure. **NOTE:** at present, the necessary navigation components are not yet checked into the main branch of isaac-nav-suite, so to get a working project out the box, you should check out the [dev/kappi_tas/migration](https://github.com/leggedrobotics/isaac-nav-suite/tree/dev/kappi_tas/migration?tab=readme-ov-file) branch.
 
-Remember to run `git submodule update --init --recursive` in this repo once you clone it, to automatically get the right version of isaac-nav-suite.
+Setup Tips:
+
+- Once you fork this repo, you should add it as a git submodule to IsaacLab-Internal
+- Remember to run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
+- Also remember to symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
+![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
+
 
 The rest of this README is the same as the general [extension template](https://github.com/isaac-sim/IsaacLabExtensionTemplate) README.
 
