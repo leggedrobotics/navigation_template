@@ -521,12 +521,10 @@ class CurriculumCfg:
         params={
             "update_rate_steps": 100 * 48,
             "initial_config": {
-                "num_paths": 100,
                 "min_path_length": 1.0,
                 "max_path_length": 5.0,
             },
             "final_config": {
-                "num_paths": 100,
                 "min_path_length": 5.0,
                 "max_path_length": 15.0,
             },
@@ -542,9 +540,9 @@ class CommandsCfg:
 
     goal_command = mdp.GoalCommandCfg(
         asset_name="robot",
-        z_offset_spawn=0.2,
+        z_offset_spawn=0.1,
         trajectory_config = {
-            "num_paths": [100],
+            "num_paths": [1000],
             "max_path_length": [10.0],
             "min_path_length": [2.0],
         },
