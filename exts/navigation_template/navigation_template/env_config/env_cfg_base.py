@@ -40,28 +40,11 @@ from .helper_configurations import add_play_configuration
 # Reset cuda memory
 torch.cuda.empty_cache()
 
-ISAAC_GYM_JOINT_NAMES = [
-    "LF_HAA",
-    "LF_HFE",
-    "LF_KFE",
-    "LH_HAA",
-    "LH_HFE",
-    "LH_KFE",
-    "RF_HAA",
-    "RF_HFE",
-    "RF_KFE",
-    "RH_HAA",
-    "RH_HFE",
-    "RH_KFE",
-]
+from nav_tasks.mdp.actions.navigation_se2_actions_cfg import ISAAC_GYM_JOINT_NAMES
 
 TERRAIN_MESH_PATH : list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
     
 IMAGE_SIZE_DOWNSAMPLE_FACTOR = 10
-
-# This works if both this extension and the nav_tasks extension are linked in the extensions directory of 
-# IsaacLab together.
-NAV_TASKS_DATA_DIR = os.path.join(ISAACLAB_ASSETS_EXT_DIR, "../nav_tasks/data")
 
 ##
 # Scene definition
@@ -94,6 +77,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
+        debug_vis=False,
         offset=RayCasterCameraCfg.OffsetCfg(
             # TODO: Find out the real rotation angle of this camera on the robot.
             # pos=(0.4761, 0.0035, 0.1055), rot=(0.9961947, 0.0, 0.087155, 0.0), convention="world"  # 10 degrees
@@ -106,6 +90,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
+        debug_vis=False,
         offset=RayCasterCameraCfg.OffsetCfg(
             pos=(-0.4641, 0.0035, 0.1055), 
             rot=(-0.001, 0.132, -0.005, 0.991), 
@@ -116,6 +101,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
+        debug_vis=False,
         offset=RayCasterCameraCfg.OffsetCfg(
             pos=(0.0203, -0.1056, 0.1748),
             rot=(0.6963642, 0.1227878, 0.1227878, -0.6963642),
@@ -126,6 +112,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
+        debug_vis=False,
         offset=RayCasterCameraCfg.OffsetCfg(
             pos=(0.0217, 0.1335, 0.1748),
             rot=(0.6963642, -0.1227878, 0.1227878, 0.6963642),
@@ -227,12 +214,6 @@ class ActionsCfg:
         low_level_action=mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=False
         ),
-        low_level_decimation=4,
-        low_level_policy_file=os.path.join(
-            NAV_TASKS_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"
-        ),
-        #/semproj/IsaacLab-Internal/source/extensions/omni.isaac.lab_assets/Robots/RSL-ETHZ/ANYmal-D/perceptive_locomotion_jit.pt
-        reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
     )
 
 
@@ -251,7 +232,7 @@ class ObservationsCfg:
             func=mdp.wild_anymal,
             params={
                 "action_term": "velocity_command",
-                "asset_cfg": SceneEntityCfg(name="robot", joint_names=ISAAC_GYM_JOINT_NAMES),
+                "asset_cfg": SceneEntityCfg(name="robot", joint_names=ISAAC_GYM_JOINT_NAMES, preserve_order=True),
             },
         )
         # Exterocpetion
@@ -356,7 +337,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "position_range": (0.5, 1.5),
+            "position_range": (0.0, 0.0),
             "velocity_range": (0.0, 0.0),
         },
     )
@@ -365,6 +346,7 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP.
+
     NOTE: all reward get multiplied with weight*dt --> consider this!
     and are normalized over max episode length (in wandb logging)
     NOTE: Wandb --> Eposiode Rewards are in seconds!
@@ -418,6 +400,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """
     Termination terms for the MDP. 
+
     NOTE: time_out flag: if set to True, there won't be any termination penalty added for 
           the termination, but in the RSL_RL library time_out flag has implications for how 
           the reward is handled before the optimization step. If time_out is True, the rewards
@@ -522,9 +505,9 @@ class CommandsCfg:
         asset_name="robot",
         z_offset_spawn=0.2,
         trajectory_config = {
-        "num_paths": [100],
-        "max_path_length": [10.0],
-        "min_path_length": [2.0],
+            "num_paths": [100],
+            "max_path_length": [10.0],
+            "min_path_length": [2.0],
         },
         traj_sampling=TrajectorySamplingCfg(
             terrain_analysis=TerrainAnalysisCfg(
@@ -542,8 +525,8 @@ class CommandsCfg:
 class DefaultViewerCfg(ViewerCfg):
     """Configuration of the scene viewport camera."""
 
-    eye: tuple[float, float, float] = (0.0, 70.0, 70.0)
-    lookat: tuple[float, float, float] = (0.0, 10.0, 0.0)
+    eye: tuple[float, float, float] = (0.0, 7.0, 7.0)
+    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
     resolution: tuple[int, int] = (1280, 720)  # (1280, 720) HD, (1920, 1080) FHD
     origin_type: str = "world"  # "world", "env", "asset_root"
     env_index: int = 1
@@ -587,7 +570,6 @@ class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
 
         # General settings
         self.episode_length_s = 20
-        self.use_path_follower_controller = False  # default is learned policy
 
         # This sets how many times the high-level actions (navigation policy) 
         # are applied to the sim before being recalculated. 
