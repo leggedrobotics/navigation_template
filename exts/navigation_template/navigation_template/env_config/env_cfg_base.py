@@ -12,22 +12,26 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
 
 import torch
 
-from omni.isaac.lab_assets import ISAACLAB_ASSETS_EXT_DIR
-from omni.isaac.lab_assets.anymal import ANYMAL_D_CFG
+from nav_collectors.collectors import TrajectorySamplingCfg
+from nav_collectors.terrain_analysis import TerrainAnalysisCfg
+from nav_tasks.sensors import ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg, adjust_ray_caster_camera_image_size
+from nav_tasks.terrains import RandomMazeTerrainCfg, MeshPillarTerrainCfg
+
+import graph_nav.mdp as mdp
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
 from omni.isaac.lab.envs import ManagerBasedRLEnvCfg, ViewerCfg
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
+from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
-from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.sensors import ContactSensorCfg, RayCasterCameraCfg, RayCasterCfg
-from omni.isaac.lab.terrains import TerrainImporterCfg
+from omni.isaac.lab.terrains import TerrainImporterCfg, TerrainGeneratorCfg
 from omni.isaac.lab.utils import configclass
 from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
@@ -55,13 +59,79 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
-TERRAIN_MESH_PATH : list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
-    
+TERRAIN_MESH_PATH: list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
+
 IMAGE_SIZE_DOWNSAMPLE_FACTOR = 10
 
-# This works if both this extension and the nav_tasks extension are linked in the extensions directory of 
+# This works if both this extension and the nav_tasks extension are linked in the extensions directory of
 # IsaacLab together.
 NAV_TASKS_DATA_DIR = os.path.join(ISAACLAB_ASSETS_EXT_DIR, "../nav_tasks/data")
+
+
+# Terrain Options
+FLAT_PLANE = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="plane",
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+        restitution=0.0,
+    ),
+)
+
+GENERATED_SUBTERRAINS = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+        restitution=0.0,
+    ),
+    terrain_generator=TerrainGeneratorCfg(
+        curriculum=True,
+        size=(20.0, 20.0),
+        num_rows=4,
+        num_cols=3,
+        sub_terrains={
+            "random_maze__rng": RandomMazeTerrainCfg(
+                resolution=1.0,
+                maze_height=1.0,
+                randomization={
+                    "range": {
+                        "length": [0.5, 1],
+                        "width": [0.5, 1],
+                        "height": [0.01, 1],
+                    },
+                    "max_increase": 1.0,
+                    "max_decrease": 1.0,
+                },
+            ),
+            "random_maze": RandomMazeTerrainCfg(
+                resolution=1.0,
+                maze_height=1.0,
+            ),
+            "mesh_pillar": MeshPillarTerrainCfg(
+                box_objects=MeshPillarTerrainCfg.BoxCfg(
+                    width=(0.5, 1.0),
+                    length=(0.5, 1.0),
+                    max_yx_angle=(0.0, 0.0),
+                    num_objects=(20, 20),
+                    height=(0.5, 1.0),
+                ),
+                cylinder_cfg=MeshPillarTerrainCfg.CylinderCfg(
+                    radius=(0.3, 0.5), max_yx_angle=(0, 5), height=(0.5, 5), num_objects=(20, 20)
+                ),
+            ),
+        },
+    ),
+)
+
 
 ##
 # Scene definition
@@ -69,26 +139,15 @@ NAV_TASKS_DATA_DIR = os.path.join(ISAACLAB_ASSETS_EXT_DIR, "../nav_tasks/data")
 @configclass
 class NavigationTemplateSceneCfg(InteractiveSceneCfg):
     """Configuration for a scene for training a perceptive navigation policy on an AnymalD Robot."""
-        
+
     # DEMO TERRAIN - Just a plane
-    terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="plane",
-        collision_group=-1,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-            restitution=0.0,
-        ),
-    )
+    terrain = GENERATED_SUBTERRAINS
 
     # ROBOTS
     robot: ArticulationCfg = ANYMAL_D_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # SENSORS
-        
+
     # Stereolabs Cameras for Navigation Policy
     forwards_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -101,16 +160,18 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.9914449, 0.0, 0.1305262, 0.0),
             convention="world",  # 15 degrees
         ),
+        debug_vis=False,
     )
     rear_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
         offset=RayCasterCameraCfg.OffsetCfg(
-            pos=(-0.4641, 0.0035, 0.1055), 
-            rot=(-0.001, 0.132, -0.005, 0.991), 
-            convention="world", # 10 degrees
-        ),  
+            pos=(-0.4641, 0.0035, 0.1055),
+            rot=(-0.001, 0.132, -0.005, 0.991),
+            convention="world",  # 10 degrees
+        ),
+        debug_vis=False,
     )
     right_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -121,6 +182,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.6963642, 0.1227878, 0.1227878, -0.6963642),
             convention="world",  # 20 degrees
         ),
+        debug_vis=False,
     )
     left_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -131,6 +193,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.6963642, -0.1227878, 0.1227878, 0.6963642),
             convention="world",  # 20 degrees
         ),
+        debug_vis=False,
     )
 
     # Foot Scanners for Locomotion Policy
@@ -228,10 +291,8 @@ class ActionsCfg:
             asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=False
         ),
         low_level_decimation=4,
-        low_level_policy_file=os.path.join(
-            NAV_TASKS_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"
-        ),
-        #/semproj/IsaacLab-Internal/source/extensions/omni.isaac.lab_assets/Robots/RSL-ETHZ/ANYmal-D/perceptive_locomotion_jit.pt
+        low_level_policy_file=os.path.join(NAV_TASKS_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"),
+        # /semproj/IsaacLab-Internal/source/extensions/omni.isaac.lab_assets/Robots/RSL-ETHZ/ANYmal-D/perceptive_locomotion_jit.pt
         reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
     )
 
@@ -243,9 +304,10 @@ class ObservationsCfg:
     @configclass
     class LocomotionPolicyCfg(ObsGroup):
         """
-        Observations for locomotion policy group. These are fixed when training a navigation 
+        Observations for locomotion policy group. These are fixed when training a navigation
         policy using a pre-trained locomotion policy.
         """
+
         # Proprioception
         wild_anymal = ObsTerm(
             func=mdp.wild_anymal,
@@ -377,7 +439,7 @@ class RewardsCfg:
     # Sparse: only when the "stayed_at_goal" condition is met, per the goal_reached term in TerminationsCfg
     goal_reached_rew = RewTerm(
         func=mdp.is_terminated_term,  # returns 1 if the goal is reached and env has NOT timed out # type: ignore
-        params={"term_keys": "goal_reached"}, 
+        params={"term_keys": "goal_reached"},
         weight=1000.0,  # make it big
     )
 
@@ -404,7 +466,7 @@ class RewardsCfg:
         weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
     episode_termination = RewTerm(
-        func=mdp.is_terminated_term, # type: ignore
+        func=mdp.is_terminated_term,  # type: ignore
         params={"term_keys": ["base_contact", "leg_contact"]},
         weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
     )
@@ -417,9 +479,9 @@ class RewardsCfg:
 @configclass
 class TerminationsCfg:
     """
-    Termination terms for the MDP. 
-    NOTE: time_out flag: if set to True, there won't be any termination penalty added for 
-          the termination, but in the RSL_RL library time_out flag has implications for how 
+    Termination terms for the MDP.
+    NOTE: time_out flag: if set to True, there won't be any termination penalty added for
+          the termination, but in the RSL_RL library time_out flag has implications for how
           the reward is handled before the optimization step. If time_out is True, the rewards
           are bootstrapped!
     NOTE: Wandb Episode Termination --> independent of num robots, episode length, etc.
@@ -431,11 +493,11 @@ class TerminationsCfg:
             "max_speed": 1.0,
             "safety_factor": 4.0,
         },
-        time_out=True, # No termination penalty for time_out = True
+        time_out=True,  # No termination penalty for time_out = True
     )
 
     goal_reached = DoneTerm(
-        func=mdp.StayedAtGoal, # type: ignore
+        func=mdp.StayedAtGoal,  # type: ignore
         params={
             "time_threshold": 2.0,
             "distance_threshold": 0.5,
@@ -517,14 +579,14 @@ class CurriculumCfg:
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-    
+
     goal_command = mdp.GoalCommandCfg(
         asset_name="robot",
         z_offset_spawn=0.2,
-        trajectory_config = {
-        "num_paths": [100],
-        "max_path_length": [10.0],
-        "min_path_length": [2.0],
+        trajectory_config={
+            "num_paths": [100],
+            "max_path_length": [10.0],
+            "min_path_length": [2.0],
         },
         traj_sampling=TrajectorySamplingCfg(
             terrain_analysis=TerrainAnalysisCfg(
@@ -535,8 +597,9 @@ class CommandsCfg:
                 viz_height_map=False,
             )
         ),
-        resampling_time_range=(1.0e9,1.0e9), # No resampling
+        resampling_time_range=(1.0e9, 1.0e9),  # No resampling
     )
+
 
 @configclass
 class DefaultViewerCfg(ViewerCfg):
@@ -589,15 +652,15 @@ class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = 20
         self.use_path_follower_controller = False  # default is learned policy
 
-        # This sets how many times the high-level actions (navigation policy) 
-        # are applied to the sim before being recalculated. 
+        # This sets how many times the high-level actions (navigation policy)
+        # are applied to the sim before being recalculated.
         # self.sim.dt * self.decimation = 0.005 * 20 = 0.1 seconds -> 10Hz.
         self.fz_low_level_planner = 10  # Hz
-        self.decimation = int(200 / self.fz_low_level_planner)  
+        self.decimation = int(200 / self.fz_low_level_planner)
 
         # Similar to above, the low-level actions (locomotion controller) are calculated every:
         # self.sim.dt * self.low_level_decimation, so 0.005 * 4 = 0.02 seconds, or 50Hz.
-        self.low_level_decimation = 4  
+        self.low_level_decimation = 4
 
         ###### /DO NOT CHANGE ######
 
