@@ -79,7 +79,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
         update_period=0,
         debug_vis=False,
         offset=RayCasterCameraCfg.OffsetCfg(
-            # TODO: Find out the real rotation angle of this camera on the robot.
+            # The camera can be mounted at either 10 or 15 degrees on the robot.
             # pos=(0.4761, 0.0035, 0.1055), rot=(0.9961947, 0.0, 0.087155, 0.0), convention="world"  # 10 degrees
             pos=(0.4761, 0.0035, 0.1055),
             rot=(0.9914449, 0.0, 0.1305262, 0.0),
@@ -306,29 +306,10 @@ class EventCfg:
     """Configuration for randomization."""
 
     reset_base = EventTerm(
-        func=mdp.TerrainAnalysisRootReset(
-            cfg=TerrainAnalysisCfg(
-                semantic_cost_mapping=None,
-                raycaster_sensor="forwards_zed_camera",
-                sample_points=10000,
-                height_diff_threshold=0.2,
-                max_terrain_size=100.0,
-                viz_height_map=False,
-                viz_graph=False,
-            )
-        ),
+        func=mdp.reset_robot_position,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "yaw_range": (-3.14, 3.14),
-            "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (0, 0),
-                "roll": (0, 0),
-                "pitch": (0, 0),
-                "yaw": (-0.5, 0.5),
-            },
+            "yaw_range": (-3.0, 3.0),
         },
     )
 
@@ -352,8 +333,6 @@ class RewardsCfg:
     NOTE: Wandb --> Eposiode Rewards are in seconds!
     NOTE: Wandb Train Mean Reward --> based on episode length --> Rewards * Episode Length
     """
-
-    # TODO: Go through these, add to isaac-nav-suite, and document / clean up.
 
     # -- rewards
     # Sparse: only when the "stayed_at_goal" condition is met, per the goal_reached term in TerminationsCfg
