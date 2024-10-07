@@ -144,7 +144,6 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.9914449, 0.0, 0.1305262, 0.0),
             convention="world",  # 15 degrees
         ),
-        debug_vis=False,
     )
     rear_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -156,7 +155,6 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(-0.001, 0.132, -0.005, 0.991),
             convention="world",  # 10 degrees
         ),
-        debug_vis=False,
     )
     right_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -168,7 +166,6 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.6963642, 0.1227878, 0.1227878, -0.6963642),
             convention="world",  # 20 degrees
         ),
-        debug_vis=False,
     )
     left_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -180,7 +177,6 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             rot=(0.6963642, -0.1227878, 0.1227878, 0.6963642),
             convention="world",  # 20 degrees
         ),
-        debug_vis=False,
     )
 
     # Foot Scanners for Locomotion Policy
@@ -562,6 +558,7 @@ class CommandsCfg:
             )
         ),
         resampling_time_range=(1.0e9, 1.0e9),  # No resampling
+        debug_vis=True,
     )
 
 
@@ -569,7 +566,7 @@ class CommandsCfg:
 class DefaultViewerCfg(ViewerCfg):
     """Configuration of the scene viewport camera."""
 
-    eye: tuple[float, float, float] = (0.0, 7.0, 7.0)
+    eye: tuple[float, float, float] = (0.0, 50.0, 50.0)
     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
     resolution: tuple[int, int] = (1280, 720)  # (1280, 720) HD, (1920, 1080) FHD
     origin_type: str = "world"  # "world", "env", "asset_root"
