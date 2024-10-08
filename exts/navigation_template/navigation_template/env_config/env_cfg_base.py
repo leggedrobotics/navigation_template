@@ -32,8 +32,10 @@ from omni.isaac.lab.utils import configclass
 from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
 from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
+from nav_tasks.terrains import RandomMazeTerrainCfg
 
 import navigation_template.mdp as mdp
+import navigation_template.terrains as terrains
 
 from .helper_configurations import add_play_configuration
 
@@ -44,7 +46,7 @@ from nav_tasks.mdp.actions.navigation_se2_actions_cfg import ISAAC_GYM_JOINT_NAM
 
 TERRAIN_MESH_PATH : list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
     
-IMAGE_SIZE_DOWNSAMPLE_FACTOR = 10
+IMAGE_SIZE_DOWNSAMPLE_FACTOR = 60
 
 ##
 # Scene definition
@@ -52,19 +54,21 @@ IMAGE_SIZE_DOWNSAMPLE_FACTOR = 10
 @configclass
 class NavigationTemplateSceneCfg(InteractiveSceneCfg):
     """Configuration for a scene for training a perceptive navigation policy on an AnymalD Robot."""
-        
-    # DEMO TERRAIN - Just a plane
+
+    # TERRAIN
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="plane",
+        terrain_type="generator",
+        terrain_generator=terrains.DENO_NAV_TERRAINS_CFG,
+        max_init_terrain_level=None,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",
             restitution_combine_mode="multiply",
             static_friction=1.0,
             dynamic_friction=1.0,
-            restitution=0.0,
         ),
+        debug_vis=True,
     )
 
     # ROBOTS
