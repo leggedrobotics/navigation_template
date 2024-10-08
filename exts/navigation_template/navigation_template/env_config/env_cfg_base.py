@@ -15,9 +15,9 @@ import torch
 from nav_collectors.collectors import TrajectorySamplingCfg
 from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 from nav_tasks.sensors import ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg, adjust_ray_caster_camera_image_size
-from nav_tasks.terrains import RandomMazeTerrainCfg, MeshPillarTerrainCfg
+from nav_tasks.terrains import MeshPillarTerrainCfg, RandomMazeTerrainCfg
 
-import graph_nav.mdp as mdp
+import navigation_template.mdp as mdp
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
@@ -31,13 +31,9 @@ from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.sensors import ContactSensorCfg, RayCasterCameraCfg, RayCasterCfg
-from omni.isaac.lab.terrains import TerrainImporterCfg, TerrainGeneratorCfg
+from omni.isaac.lab.terrains import TerrainGeneratorCfg, TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
-from nav_collectors.terrain_analysis import TerrainAnalysisCfg
-from nav_collectors.collectors import TrajectorySamplingCfg
-from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
-
-import navigation_template.mdp as mdp
+from omni.isaac.lab_assets.anymal import ANYMAL_D_CFG
 
 from .helper_configurations import add_play_configuration
 
@@ -85,15 +81,11 @@ GENERATED_SUBTERRAINS = TerrainImporterCfg(
             "random_maze__rng": RandomMazeTerrainCfg(
                 resolution=1.0,
                 maze_height=1.0,
-                randomization={
-                    "range": {
-                        "length": [0.5, 1],
-                        "width": [0.5, 1],
-                        "height": [0.01, 1],
-                    },
-                    "max_increase": 1.0,
-                    "max_decrease": 1.0,
-                },
+                length_range=[0.5, 1],
+                width_range=[0.5, 1],
+                height_range=[0.01, 1],
+                max_increase=1.0,
+                max_decrease=1.0,
             ),
             "random_maze": RandomMazeTerrainCfg(
                 resolution=1.0,
@@ -438,10 +430,10 @@ class RewardsCfg:
 @configclass
 class TerminationsCfg:
     """
-    Termination terms for the MDP. 
+    Termination terms for the MDP.
 
-    NOTE: time_out flag: if set to True, there won't be any termination penalty added for 
-          the termination, but in the RSL_RL library time_out flag has implications for how 
+    NOTE: time_out flag: if set to True, there won't be any termination penalty added for
+          the termination, but in the RSL_RL library time_out flag has implications for how
           the reward is handled before the optimization step. If time_out is True, the rewards
           are bootstrapped!
     NOTE: Wandb Episode Termination --> independent of num robots, episode length, etc.
@@ -541,15 +533,15 @@ class CommandsCfg:
     goal_command = mdp.GoalCommandCfg(
         asset_name="robot",
         z_offset_spawn=0.1,
-        trajectory_config = {
+        trajectory_config={
             "num_paths": [1000],
             "max_path_length": [10.0],
             "min_path_length": [2.0],
         },
         traj_sampling=TrajectorySamplingCfg(
             terrain_analysis=TerrainAnalysisCfg(
-                raycaster_sensor="forwards_zed_camera", 
-                max_terrain_size=100.0, 
+                raycaster_sensor="forwards_zed_camera",
+                max_terrain_size=100.0,
                 semantic_cost_mapping=None,
                 viz_graph=False,
                 viz_height_map=False,
@@ -600,7 +592,7 @@ class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
 
-        ###### DO NOT CHANGE ######
+        ###### DO NOT CHANGE ######  # noqa: E266
 
         # Simulation settings
         self.sim.dt = 0.005  # In seconds
@@ -620,7 +612,7 @@ class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
         # self.sim.dt * self.low_level_decimation, so 0.005 * 4 = 0.02 seconds, or 50Hz.
         self.low_level_decimation = 4
 
-        ###### /DO NOT CHANGE ######
+        ###### /DO NOT CHANGE ###### # noqa: E266
 
         # update sensor update periods
         # We tick contact sensors based on the smallest update period (physics update period)
