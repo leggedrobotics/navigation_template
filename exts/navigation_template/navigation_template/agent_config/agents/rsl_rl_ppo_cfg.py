@@ -9,7 +9,7 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 @configclass
 class PPOBaseCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 1500
+    max_iterations = 4000#1500
     save_interval = 50
     experiment_name = "navigation_template"
     wandb_project = "navigation_template"

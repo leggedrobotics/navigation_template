@@ -10,7 +10,7 @@ import nav_tasks.terrains as nav_terrains
 
 DENO_NAV_TERRAINS_CFG = terrain_gen.TerrainGeneratorCfg(
     size=(50.0, 50.0),
-    border_width=1.0,
+    border_width=10.0,
     num_rows=1,
     num_cols=1,
     horizontal_scale=0.1,

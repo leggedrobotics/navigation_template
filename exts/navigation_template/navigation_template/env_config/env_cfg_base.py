@@ -46,7 +46,7 @@ from nav_tasks.mdp.actions.navigation_se2_actions_cfg import ISAAC_GYM_JOINT_NAM
 
 TERRAIN_MESH_PATH : list[str | RayCasterCfg.RaycastTargetCfg] = ["/World/ground"]
     
-IMAGE_SIZE_DOWNSAMPLE_FACTOR = 60
+IMAGE_SIZE_DOWNSAMPLE_FACTOR = 15
 
 ##
 # Scene definition
@@ -278,23 +278,26 @@ class ObservationsCfg:
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
 
         goal_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
+        # goal_commands = ObsTerm(
+        #     func=mdp.expanded_generated_commands, params={"command_name": "goal_command", "size": 256}
+        # )  # size of the risk and depth images.
 
         forwards_depth_image = ObsTerm(
             func=mdp.flattened_depth_img,
             params={"sensor_cfg": SceneEntityCfg("forwards_zed_camera")},
         )
-        rear_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("rear_zed_camera")},
-        )
-        right_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("right_zed_camera")},
-        )
-        left_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("left_zed_camera")},
-        )
+        # rear_depth_image = ObsTerm(
+        #     func=mdp.flattened_depth_img,
+        #     params={"sensor_cfg": SceneEntityCfg("rear_zed_camera")},
+        # )
+        # right_depth_image = ObsTerm(
+        #     func=mdp.flattened_depth_img,
+        #     params={"sensor_cfg": SceneEntityCfg("right_zed_camera")},
+        # )
+        # left_depth_image = ObsTerm(
+        #     func=mdp.flattened_depth_img,
+        #     params={"sensor_cfg": SceneEntityCfg("left_zed_camera")},
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -465,8 +468,8 @@ class CurriculumCfg:
         params={
             "update_rate_steps": 100 * 48,
             "initial_config": {
-                "min_path_length": 1.0,
-                "max_path_length": 5.0,
+                "min_path_length": 0.0,
+                "max_path_length": 2.0,
             },
             "final_config": {
                 "min_path_length": 5.0,
@@ -491,6 +494,8 @@ class CommandsCfg:
             "min_path_length": [2.0],
         },
         traj_sampling=TrajectorySamplingCfg(
+            # TODO(kappi): Turn this on once the terrain isn't changing anymore.
+            enable_saved_paths_loading=False,
             terrain_analysis=TerrainAnalysisCfg(
                 raycaster_sensor="forwards_zed_camera", 
                 max_terrain_size=100.0, 
