@@ -328,20 +328,20 @@ class ObservationsCfg:
         goal_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
 
         forwards_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("forwards_zed_camera")},
+            func=mdp.camera_image,
+            params={"sensor_cfg": SceneEntityCfg("forwards_zed_camera"), "flatten": True},
         )
         rear_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("rear_zed_camera")},
+            func=mdp.camera_image,
+            params={"sensor_cfg": SceneEntityCfg("rear_zed_camera"), "flatten": True},
         )
         right_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("right_zed_camera")},
+            func=mdp.camera_image,
+            params={"sensor_cfg": SceneEntityCfg("right_zed_camera"), "flatten": True},
         )
         left_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
-            params={"sensor_cfg": SceneEntityCfg("left_zed_camera")},
+            func=mdp.camera_image,
+            params={"sensor_cfg": SceneEntityCfg("left_zed_camera"), "flatten": True},
         )
 
         def __post_init__(self):
@@ -488,10 +488,8 @@ class CurriculumCfg:
         func=mdp.modify_heading_randomization_linearly,
         params={
             "event_term_name": "reset_base",
-            "initial_perturbation": 0.0,
-            "final_perturbation": 3.0,
-            "start_step": 0,
-            "end_step": 500 * 48,
+            "perturbation_range": (0.0, 3.0),
+            "step_range": (0, 500 * 48),
         },
     )
 
@@ -512,16 +510,9 @@ class CurriculumCfg:
         func=mdp.modify_goal_distance_in_steps,
         params={
             "update_rate_steps": 100 * 48,
-            "initial_config": {
-                "min_path_length": 1.0,
-                "max_path_length": 5.0,
-            },
-            "final_config": {
-                "min_path_length": 5.0,
-                "max_path_length": 15.0,
-            },
-            "start_step": 50 * 48,
-            "end_step": 1500 * 48,
+            "min_path_length_range": (1.0, 5.0),
+            "max_path_length_range": (5.0, 15.0),
+            "step_range": (50 * 48, 1500 * 48),
         },
     )
 
