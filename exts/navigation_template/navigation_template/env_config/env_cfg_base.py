@@ -32,7 +32,6 @@ from omni.isaac.lab.utils import configclass
 from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
 from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
-from nav_tasks.terrains import RandomMazeTerrainCfg
 
 import navigation_template.mdp as mdp
 import navigation_template.terrains as terrains
@@ -59,7 +58,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=terrains.DENO_NAV_TERRAINS_CFG,
+        terrain_generator=terrains.DEMO_NAV_TERRAIN_CFG,
         max_init_terrain_level=None,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -283,20 +282,20 @@ class ObservationsCfg:
         # )  # size of the risk and depth images.
 
         forwards_depth_image = ObsTerm(
-            func=mdp.flattened_depth_img,
+            func=mdp.embedded_depth_image,
             params={"sensor_cfg": SceneEntityCfg("forwards_zed_camera")},
         )
         # rear_depth_image = ObsTerm(
-        #     func=mdp.flattened_depth_img,
-        #     params={"sensor_cfg": SceneEntityCfg("rear_zed_camera")},
+        #     func=mdp.camera_image,
+        #     params={"sensor_cfg": SceneEntityCfg("rear_zed_camera"), "flatten": True},
         # )
         # right_depth_image = ObsTerm(
-        #     func=mdp.flattened_depth_img,
-        #     params={"sensor_cfg": SceneEntityCfg("right_zed_camera")},
+        #     func=mdp.camera_image,
+        #     params={"sensor_cfg": SceneEntityCfg("right_zed_camera"), "flatten": True},
         # )
         # left_depth_image = ObsTerm(
-        #     func=mdp.flattened_depth_img,
-        #     params={"sensor_cfg": SceneEntityCfg("left_zed_camera")},
+        #     func=mdp.camera_image,
+        #     params={"sensor_cfg": SceneEntityCfg("left_zed_camera"), "flatten": True},
         # )
 
         def __post_init__(self):
@@ -443,10 +442,8 @@ class CurriculumCfg:
         func=mdp.modify_heading_randomization_linearly,
         params={
             "event_term_name": "reset_base",
-            "initial_perturbation": 0.0,
-            "final_perturbation": 3.0,
-            "start_step": 0,
-            "end_step": 500 * 48,
+            "perturbation_range": (0.0, 3.0),
+            "step_range": (0, 500 * 48),
         },
     )
 
@@ -467,16 +464,9 @@ class CurriculumCfg:
         func=mdp.modify_goal_distance_in_steps,
         params={
             "update_rate_steps": 100 * 48,
-            "initial_config": {
-                "min_path_length": 0.0,
-                "max_path_length": 2.0,
-            },
-            "final_config": {
-                "min_path_length": 5.0,
-                "max_path_length": 15.0,
-            },
-            "start_step": 50 * 48,
-            "end_step": 1500 * 48,
+            "min_path_length_range": (0.0, 2.0),
+            "max_path_length_range": (5.0, 15.0),
+            "step_range": (50 * 48, 1500 * 48),
         },
     )
 
