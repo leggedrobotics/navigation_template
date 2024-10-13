@@ -76,7 +76,7 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
     # SENSORS
         
     # Stereolabs Cameras for Navigation Policy
-    forwards_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
+    front_zed_camera = ZED_X_MINI_WIDE_RAYCASTER_CFG.replace(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         mesh_prim_paths=TERRAIN_MESH_PATH,
         update_period=0,
@@ -189,8 +189,8 @@ class NavigationTemplateSceneCfg(InteractiveSceneCfg):
             ".*H_KFE": 0.761428,
         }
         # Downsample the camera data to a usable size for the project.
-        self.forwards_zed_camera = adjust_ray_caster_camera_image_size(
-            self.forwards_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
+        self.front_zed_camera = adjust_ray_caster_camera_image_size(
+            self.front_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
         )
         self.rear_zed_camera = adjust_ray_caster_camera_image_size(
             self.rear_zed_camera, IMAGE_SIZE_DOWNSAMPLE_FACTOR, IMAGE_SIZE_DOWNSAMPLE_FACTOR
@@ -277,25 +277,18 @@ class ObservationsCfg:
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
 
         goal_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "goal_command"})
-        # goal_commands = ObsTerm(
-        #     func=mdp.expanded_generated_commands, params={"command_name": "goal_command", "size": 256}
-        # )  # size of the risk and depth images.
 
-        forwards_depth_image = ObsTerm(
-            func=mdp.embedded_depth_image,
-            params={"sensor_cfg": SceneEntityCfg("forwards_zed_camera")},
+        forwards_depth_image = mdp.EmbeddedDepthImageCfg(
+            sensor_cfg = SceneEntityCfg("front_zed_camera"),
         )
-        # rear_depth_image = ObsTerm(
-        #     func=mdp.camera_image,
-        #     params={"sensor_cfg": SceneEntityCfg("rear_zed_camera"), "flatten": True},
+        # backwards_depth_image = mdp.EmbeddedDepthImageCfg(
+        #     sensor_cf = SceneEntityCfg("rear_zed_camera"),
         # )
-        # right_depth_image = ObsTerm(
-        #     func=mdp.camera_image,
-        #     params={"sensor_cfg": SceneEntityCfg("right_zed_camera"), "flatten": True},
+        # left_depth_image = mdp.EmbeddedDepthImageCfg(
+        #     sensor_cfg = SceneEntityCfg("left_zed_camera"),
         # )
-        # left_depth_image = ObsTerm(
-        #     func=mdp.camera_image,
-        #     params={"sensor_cfg": SceneEntityCfg("left_zed_camera"), "flatten": True},
+        # right_depth_image = mdp.EmbeddedDepthImageCfg(
+        #     sensor_cfg = SceneEntityCfg("right_zed_camera"),
         # )
 
         def __post_init__(self):
@@ -487,7 +480,7 @@ class CommandsCfg:
             # TODO(kappi): Turn this on once the terrain isn't changing anymore.
             enable_saved_paths_loading=False,
             terrain_analysis=TerrainAnalysisCfg(
-                raycaster_sensor="forwards_zed_camera", 
+                raycaster_sensor="front_zed_camera", 
                 max_terrain_size=100.0, 
                 semantic_cost_mapping=None,
                 viz_graph=False,
@@ -565,8 +558,8 @@ class NavigationTemplateEnvCfg(ManagerBasedRLEnvCfg):
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
         # We tick the cameras based on the navigation policy update period.
-        if self.scene.forwards_zed_camera is not None:
-            self.scene.forwards_zed_camera.update_period = self.decimation * self.sim.dt
+        if self.scene.front_zed_camera is not None:
+            self.scene.front_zed_camera.update_period = self.decimation * self.sim.dt
         if self.scene.rear_zed_camera is not None:
             self.scene.rear_zed_camera.update_period = self.decimation * self.sim.dt
         if self.scene.right_zed_camera is not None:
