@@ -21,7 +21,8 @@ Setup Tips:
 - You should use the "use this template" button instead of forking this repo, so it doesn't end up public.
 - Once you have got the template, you should add it as a git submodule to IsaacLab-Internal
 - Remember to run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
-- Also remember to symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
+- Update the names of the files in your repo from the template (instructions below, using the included script)
+- Symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
   
 ![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
 ![image](https://github.com/user-attachments/assets/19b5f571-9741-4937-bc79-a41ba36ec40c)
