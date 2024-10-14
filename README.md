@@ -16,18 +16,66 @@ Out the box, the code here should allow you to train a basic navigation policy u
 
 The code skeleton here is very lightweight, because all shared navigation components live in [isaac-nav-suite](https://github.com/leggedrobotics/isaac-nav-suite), and this template just assembles them in an example `env_cfg` file in a way that works out the box, and demonstrates how to set up your directory structure. **NOTE:** at present, the necessary navigation components are not yet checked into the main branch of isaac-nav-suite, so to get a working project out the box, you should check out the [dev/kappi/perceptnet](https://github.com/leggedrobotics/isaac-nav-suite/tree/dev/kappi/perceptnet) branch.
 
-Setup Tips:
+Setup Steps:
 
-- You should use the "use this template" button instead of forking this repo, so it doesn't end up public.
-- Once you have got the template, you should add it as a git submodule to IsaacLab-Internal
-- Remember to run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
-- Update the names of the files in your repo from the template (instructions below, using the included script)
-- Symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
+1. You should use the "use this template" button instead of forking this repo, so it doesn't end up public.
+2. Once you have got the template, you should add it as a git submodule to IsaacLab-Internal
+3. Run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
+4. Update the names of the files in your repo from the template (instructions below, using the included script)
+5. Symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
   
 ![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
 ![image](https://github.com/user-attachments/assets/19b5f571-9741-4937-bc79-a41ba36ec40c)
 
-The rest of this README is the same as the general [extension template](https://github.com/isaac-sim/IsaacLabExtensionTemplate) README.
+6. Run `isaaclab.sh -i` from the IsaacLab-Internal level of your project so that the extraPaths section in your `.vscode settings.json` links to the new extension links you made (`"${workspaceFolder}/source/extensions/nav_tasks"` etc). Check that your extension shows up or the python linking won't work.
+7. Set up your top level (IsaacLab-Internal) launch file in .vscode. `launch.json` can include launch configurations so you don't have to enter command line args every time you run, then you can use the Run and Debug menu:
+![image](https://github.com/user-attachments/assets/bb691dbb-1406-4cf4-b08e-b3ec9f761add)
+
+to run different versions of your project. Here's an example entry in launch.json.
+```
+        {
+            "name": "Python: Train Environment",
+            "type": "debugpy",
+            "request": "launch",
+            "args" : [
+                "--task", "Isaac-Navigation-NavigationTemplate-PPO-Anymal-D-TRAIN", 
+                "--num_envs", "400",
+                "--headless",
+                "--enable_cameras",
+                "--video",
+                "--video_length=200",
+                "--video_interval=4000", ],
+            "program": "${workspaceFolder}/navigation_template/scripts/rsl_rl/train.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.vscode/.python.env",
+        },
+        {
+            "name": "Python: Dev Environment",
+            "type": "debugpy",
+            "request": "launch",
+            "args" : ["--task", "Isaac-Navigation-NavigationTemplate-PPO-Anymal-D-DEV", "--num_envs", "5"],
+            "program": "${workspaceFolder}/navigation_template/scripts/rsl_rl/train.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.vscode/.python.env",
+        },
+        {
+            "name": "Python: Play Environment",
+            "type": "debugpy",
+            "request": "launch",
+            "args" : [
+                "--task", "Isaac-Navigation-NavigationTemplate-PPO-Anymal-D-PLAY",
+                "--num_envs", "2",
+                "--load_run",
+                "2024-10-07_23-48-35_PPO",
+                "--checkpoint",
+                "model_200.pt"],
+            "program": "${workspaceFolder}/navigation_template/scripts/rsl_rl/play.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.vscode/.python.env",
+        },
+```
+
+The rest of this README is the same as the general [extension template](https://github.com/isaac-sim/IsaacLabExtensionTemplate) README, for extra context.
 
 **Key Features:**
 
