@@ -19,16 +19,55 @@ The code skeleton here is very lightweight, because all shared navigation compon
 Setup Steps:
 
 1. You should use the "use this template" button instead of forking this repo, so it doesn't end up public.
-2. Once you have got the template, you should add it as a git submodule to IsaacLab-Internal
-3. Run `git submodule update --init --recursive` in IsaacLab-Internal, to automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template)
-4. Update the names of the files in your repo from the template (instructions below, using the included script)
-5. Symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, like so:
-  
-![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
-![image](https://github.com/user-attachments/assets/19b5f571-9741-4937-bc79-a41ba36ec40c)
 
-6. Run `isaaclab.sh -i` from the IsaacLab-Internal level of your project so that the extraPaths section in your `.vscode settings.json` links to the new extension links you made (`"${workspaceFolder}/source/extensions/nav_tasks"` etc). Check that your extension shows up or the python linking won't work.
-7. Set up your top level (IsaacLab-Internal) launch file in .vscode. `launch.json` can include launch configurations so you don't have to enter command line args every time you run, then you can use the Run and Debug menu:
+2. Clone your new extension and follow the instructions under "Installation" below to rename the template to your extension name (in the future steps called: `<your-extension-name>`) which is normally the same name as your new repo.
+
+3. Once you renamed the template, you should add it as a git submodule to IsaacLab-Internal, by running:
+
+    ```bash
+    cd IsaacLab-Internal
+    git submodule add git@github.com:leggedrobotics/<your-extension-name>.git
+    git submodule update --init --recursive
+    ```
+
+    These commands will automatically get the right version of isaac-nav-suite pulled down (it is a submodule in this template).
+    
+4. Symlink the `isaac-nav-suite` modules and your extension module in `IsaacLab-Internal/source/extensions`, by running the following commands:
+  
+    ```bash
+    cd IsaacLab-Internal/source/extensions
+    ln -s ../../<your-extension-name>/isaac-nav-suite/exts/nav_importer
+    ln -s ../../<your-extension-name>/isaac-nav-suite/exts/nav_tasks
+    ln -s ../../<your-extension-name>/isaac-nav-suite/exts/nav_collectors
+    ln -s ../../<your-extension-name>/exts/<your-extension-name>
+    ```
+
+    This will allow you to import the modules from the `isaac-nav-suite` and your extension in your code. The `IsaacLab-Internal` directory should look like this:
+    ![image](https://github.com/user-attachments/assets/d07b24e2-28f7-45b3-b0fc-909a935c5199)
+
+    **IMPORTANT** Make sure that the symlinks are relativ, only in this case the extension will be correctly installed in the docker and can be later used in the cluster.
+
+6. **DOCKER CONTAINER WORKFLOW**
+    In the case that you are working inside a docker container, make sure to bind the submodule of your extension inside the docker to allow changes inside the docker to be reflected on the host system. This can be done by adding the following lines to the `docker/docker-compose.yaml` file:
+
+    ```yaml
+        - type: bind
+          source: ../<your-extension-name>
+          target: ${DOCKER_ISAACLAB_PATH}/<your-extension-name>
+    ```
+
+    After adding the lines, the docker has to be rebuild, this will also automatically take care of the install of your extension. 
+
+    **NON-DOCKER WORKFLOW**
+    In the case you are not working within a docker, run `isaaclab.sh -i` from the IsaacLab-Internal level of your project so that the new extensions are installed.
+
+7. Make sure the code is synced to the cluster by adding the following line to `docker/cluser/cluster_interface.sh` after line 179:
+
+    ```bash
+    rsync -rh  --exclude="*.git*" --filter=':- .dockerignore' --copy-links /$SCRIPT_DIR/../../source/extensions $CLUSTER_LOGIN:$CLUSTER_ISAACLAB_DIR/source
+    ```
+
+8. Set up your top level (IsaacLab-Internal) launch file in .vscode. `launch.json` can include launch configurations so you don't have to enter command line args every time you run, then you can use the Run and Debug menu:
 ![image](https://github.com/user-attachments/assets/bb691dbb-1406-4cf4-b08e-b3ec9f761add)
 
 to run different versions of your project. Here's an example entry in launch.json.
